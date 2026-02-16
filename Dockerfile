@@ -26,6 +26,6 @@ ENV AIOS_WORKSPACE=/data/workspace \
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD aios --version || exit 1
 
-# Mantém o container vivo e pronto para receber chamadas (ex.: via n8n)
-# Você pode chamar "docker exec aios aios exec @analyst ..." de fora
-CMD ["sh", "-c", "echo 'AIOS CLI ready at $(date)' && aios --version && tail -f /dev/null"]
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+CMD ["/app/entrypoint.sh"]
