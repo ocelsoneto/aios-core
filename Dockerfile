@@ -2,21 +2,18 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Dependências úteis (git é comum em CLIs que fazem bootstrap)
 RUN apk add --no-cache git bash curl
 
-# Copia tudo
+# Instala o CLI globalmente para disponibilizar o binário "aios"
+RUN npm install -g aios-core@latest
+
+# Copia seu fork (para podermos buscar configs/workers/templates, se houver)
 COPY . .
 
-# Instala deps do projeto
-RUN npm ci || npm install
-
-# Porta do dashboard/SSE (vamos ajustar depois se o AIOS usar outra)
+# Porta padrão (vamos confirmar no próximo passo qual é a real)
 EXPOSE 3000
 
-# Diretório de dados persistentes (vamos montar volume nele no EasyPanel)
 RUN mkdir -p /data
 
-# Start: por enquanto, deixamos como "help" para validar build.
-# No próximo passo a gente troca para o comando real do servidor/dashboard.
-CMD ["sh", "-c", "node -v && npx aios-core --help && tail -f /dev/null"]
+# Mantém o container vivo por enquanto; no próximo passo trocamos para o comando do servidor/dashboard
+CMD ["sh", "-c", "aios --version && aios --help && tail -f /dev/null"]
