@@ -2,18 +2,30 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-RUN apk add --no-cache git bash curl
+RUN apk add --no-cache git bash curl jq
 
-# Instala o CLI globalmente para disponibilizar o binário "aios"
+# Instala CLI globalmente
 RUN npm install -g aios-core@latest
 
-# Copia seu fork (para podermos buscar configs/workers/templates, se houver)
+# Copia seu fork
 COPY . .
 
-# Porta padrão (vamos confirmar no próximo passo qual é a real)
-EXPOSE 3000
+# Instala deps locais (se houver package.json com workers/templates customizados)
+RUN npm ci --only=production 2>/dev/null || true
 
-RUN mkdir -p /data
+# Diretório de persistência (workspace, projetos, cache)
+RUN mkdir -p /data /data/workspace /data/logs /data/cache
 
-# Mantém o container vivo por enquanto; no próximo passo trocamos para o comando do servidor/dashboard
-CMD ["sh", "-c", "aios --version && aios --help && tail -f /dev/null"]
+# Variáveis de ambiente padrão (vamos sobrescrever no EasyPanel)
+ENV AIOS_WORKSPACE=/data/workspace \
+    AIOS_LOG_DIR=/data/logs \
+    AIOS_CACHE_DIR=/data/cache \
+    NODE_ENV=production
+
+# Health check (verifica se o CLI está disponível)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD aios --version || exit 1
+
+# Mantém o container vivo e pronto para receber chamadas (ex.: via n8n)
+# Você pode chamar "docker exec aios aios exec @analyst ..." de fora
+CMD ["sh", "-c", "echo 'AIOS CLI ready at $(date)' && aios --version && tail -f /dev/null"]
